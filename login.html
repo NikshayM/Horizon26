@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horizon SaaS | Midnight Emerald</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.cdnfonts.com/css/cal-sans" rel="stylesheet">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <style>
+        :root {
+            --color-bg: #050A0E;
+            --color-surface: #0A1628;
+            --color-surface-glass: rgba(10, 22, 40, 0.6);
+            --color-emerald: #00D37F;
+            --color-emerald-dim: #00A862;
+            --color-amber: #F59E0B;
+            --color-amber-dim: #D97706;
+            --color-text-primary: #F0F4F8;
+            --color-text-secondary: #8899A6;
+            --color-border: rgba(0, 211, 127, 0.15);
+            --font-main: 'Geist', sans-serif;
+            --font-heading: 'Cal Sans', sans-serif;
+        }
+
+        * { box-sizing: border-box; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+        body {
+            margin: 0; padding: 0;
+            background: var(--color-bg);
+            color: var(--color-text-primary);
+            font-family: var(--font-main);
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+            cursor: none;
+        }
+
+        /* ─── SHARED CURSOR ─── */
+        #cursor-dot { position:fixed;width:8px;height:8px;background:#00D37F;border-radius:50%;pointer-events:none;z-index:99999;transform:translate(-50%,-50%);transition:transform 0.1s; }
+        #cursor-ring { position:fixed;width:32px;height:32px;border:1.5px solid #00D37F;border-radius:50%;pointer-events:none;z-index:99998;transform:translate(-50%,-50%);transition:border-color 0.2s,transform 0.15s; }
+
+        /* ─── SHARED CANVAS ─── */
+        #bg-canvas { position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:-1;pointer-events:none; }
+
+        /* ══════════════════════════════════════
+           LOGIN PAGE
+        ══════════════════════════════════════ */
+        #login-page {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--color-bg);
+        }
+
+        .login-orb1, .login-orb2 {
+            position: fixed; border-radius: 50%; pointer-events: none;
+            filter: blur(90px); opacity: 0.06; mix-blend-mode: screen;
+        }
+        .login-orb1 { width:500px;height:500px;background:#00D37F;top:-150px;left:-100px;animation:orbFloat1 12s ease-in-out infinite; }
+        .login-orb2 { width:400px;height:400px;background:#00D37F;bottom:-100px;right:-80px;animation:orbFloat2 15s ease-in-out infinite; }
+
+        @keyframes orbFloat1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(60px,40px) scale(1.1)} }
+        @keyframes orbFloat2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-40px,-60px) scale(0.95)} }
+
+        .login-card {
+            width: 100%;
+            max-width: 420px;
+            padding: 48px 40px;
+            background: linear-gradient(135deg, rgba(10,22,40,0.85) 0%, rgba(10,22,40,0.6) 100%);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(0,211,127,0.15);
+            border-radius: 20px;
+            box-shadow: 0 32px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(0,211,127,0.12);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0,211,127,0.4), transparent);
+        }
+
+        .login-logo {
+            font-family: 'Cal Sans', sans-serif;
+            font-size: 28px;
+            color: var(--color-emerald);
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+        }
+
+        .login-tagline {
+            font-size: 13px;
+            color: var(--color-text-secondary);
+            margin-bottom: 36px;
+            line-height: 1.5;
+        }
+
+        .login-label {
+            display: block;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--color-text-secondary);
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .login-input {
+            width: 100%;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(0,211,127,0.15);
+            border-radius: 10px;
+            color: var(--color-text-primary);
+            padding: 13px 16px;
+            font-size: 14px;
+            font-family: var(--font-main);
+            outline: none;
+            transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+            margin-bottom: 20px;
+        }
+
+        .login-input:focus {
+            border-color: rgba(0,211,127,0.5);
+            background: rgba(0,211,127,0.04);
+            box-shadow: 0 0 0 3px rgba(0,211,127,0.08);
+        }
+
+        .login-input::placeholder { color: rgba(136,153,166,0.5); }
+
+        .login-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 28px;
+            margin-top: -8px;
+        }
+
+        .login-remember {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--color-text-secondary);
+            cursor: pointer;
+        }
+
+        .login-remember input[type=checkbox] {
+            accent-color: var(--color-emerald);
+            width: 14px; height: 14px;
+        }
+
+        .login-forgot {
+            font-size: 12px;
+            color: var(--color-emerald);
+            opacity: 0.7;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .login-forgot:hover { opacity: 1; }
+
+        .login-btn {
+            width: 100%;
+            background: var(--color-emerald);
+            color: #000;
+            font-family: 'Cal Sans', sans-serif;
+            border: none;
+            border-radius: 10px;
+            padding: 15px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+            position: relative;
+            overflow: hidden;
+            letter-spacing: 0.02em;
+        }
+
+        .login-btn:hover {
+            background: var(--color-emerald-dim);
+            transform: translateY(-1px);
+            box-shadow: 0 8px 24px rgba(0,211,127,0.25);
+        }
+
+        .login-btn:active { transform: translateY(0); }
+
+        .login-divider {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 24px 0;
+        }
+        .login-divider::before, .login-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--color-border);
+        }
+        .login-divider span {
+            font-size: 12px;
+            color: var(--color-text-secondary);
+        }
+
+        .login-signup-row {
+            text-align: center;
+            font-size: 13px;
+            color: var(--color-text-secondary);
+            margin-top: 20px;
+        }
+        .login-signup-row a {
+            color: var(--color-emerald);
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .login-signup-row a:hover { text-decoration: underline; }
+
+        .login-error {
+            display: none;
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.3);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 12px;
+            color: #EF4444;
+            margin-bottom: 16px;
+        }
+
+        .login-social-btn {
+            width: 100%;
+            background: transparent;
+            border: 1px solid var(--color-border);
+            border-radius: 10px;
+            color: var(--color-text-secondary);
+            padding: 12px;
+            font-size: 13px;
+            font-family: var(--font-main);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .login-social-btn:hover {
+            border-color: rgba(0,211,127,0.3);
+            color: var(--color-text-primary);
+            background: rgba(0,211,127,0.04);
+        }
+
+        /* Loading spinner inside button */
+        .btn-spinner {
+            display: none;
+            width: 16px; height: 16px;
+            border: 2px solid rgba(0,0,0,0.3);
+            border-top-color: #000;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .ripple { position:absolute;border-radius:50%;background:rgba(255,255,255,0.25);transform:scale(0);animation:ripple-anim 0.5s linear;pointer-events:none; }
+        @keyframes ripple-anim { to { transform:scale(20);opacity:0; } }
+
+        /* ══════════════════════════════════════
+           MAIN APP (hidden until login)
+        ══════════════════════════════════════ */
+        #app-layer { display: none; opacity: 0; }
+
+        /* ─── Loader ─── */
+        #loader { position:fixed;inset:0;z-index:99999;background:#050A0E;display:flex;flex-direction:column;align-items:center;justify-content:center; }
+
+        /* ─── Orbs ─── */
+        #orb1,#orb2,#orb3 { position:fixed;border-radius:50%;pointer-events:none;z-index:0;filter:blur(80px);opacity:0.07;mix-blend-mode:screen;isolation:isolate; }
+        #orb1 { width:600px;height:600px;background:#00D37F;top:-200px;left:-100px;animation:orbFloat1 12s ease-in-out infinite; }
+        #orb2 { width:500px;height:500px;background:#00D37F;bottom:-150px;right:-100px;animation:orbFloat2 15s ease-in-out infinite; }
+        #orb3 { width:400px;height:400px;background:#F59E0B;top:50%;left:50%;transform:translate(-50%,-50%);animation:orbFloat3 20s ease-in-out infinite;opacity:0.04; }
+        @keyframes orbFloat3 { 0%,100%{transform:translate(-50%,-50%) scale(1)} 33%{transform:translate(-40%,-60%) scale(1.15)} 66%{transform:translate(-60%,-40%) scale(0.9)} }
+
+        #scroll-progress { position:fixed;top:0;left:0;height:2px;background:linear-gradient(90deg,#00D37F,#00A862);z-index:9997;width:0%; }
+
+        .btn-primary { position:relative;overflow:hidden;background:var(--color-emerald);color:#000;font-family:var(--font-heading);border:none;border-radius:8px;padding:14px 28px;font-size:16px;font-weight:600;cursor:pointer;transition:transform 0.2s,background 0.2s;display:inline-flex;align-items:center;justify-content:center;text-decoration:none; }
+        .btn-primary:hover { transform:scale(1.04);background:var(--color-emerald-dim); }
+
+        .glass-card { background:linear-gradient(135deg,rgba(10,22,40,0.7) 0%,rgba(10,22,40,0.4) 100%);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border:1px solid rgba(0,211,127,0.12);border-radius:16px;padding:24px;box-shadow:0 8px 32px rgba(0,0,0,0.4),inset 0 1px 0 rgba(0,211,127,0.1);transition:box-shadow 0.2s,transform 0.2s;transform-style:preserve-3d;will-change:transform;box-sizing:border-box;isolation:isolate; }
+
+        .badge-ontrack { background:rgba(0,211,127,0.15);color:var(--color-emerald);font-size:12px;padding:4px 12px;border-radius:20px;font-weight:500;border:1px solid rgba(0,211,127,0.2); }
+        .badge-atrisk { background:rgba(245,158,11,0.15);color:var(--color-amber);font-size:12px;padding:4px 12px;border-radius:20px;font-weight:500;border:1px solid rgba(245,158,11,0.2); }
+
+        #navbar { position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:16px 5vw;background:rgba(5,10,14,0.7);backdrop-filter:blur(20px);border-bottom:1px solid var(--color-border); }
+        .nav-logo { font-family:'Cal Sans',sans-serif;font-size:22px;color:var(--color-emerald);letter-spacing:-0.5px; }
+        .nav-links { display:flex;gap:32px; }
+        .nav-links a { color:var(--color-text-secondary);text-decoration:none;font-size:14px;transition:color 0.2s; }
+        .nav-links a:hover { color:var(--color-text-primary); }
+
+        /* Nav user pill */
+        .nav-user { display:flex;align-items:center;gap:10px; }
+        .nav-avatar { width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#00D37F,#00A862);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#000;font-family:'Cal Sans',sans-serif; }
+        .nav-username { font-size:13px;color:var(--color-text-secondary); }
+        .nav-logout { font-size:12px;color:var(--color-text-secondary);background:transparent;border:1px solid var(--color-border);padding:5px 12px;border-radius:20px;cursor:pointer;transition:all 0.2s;font-family:var(--font-main); }
+        .nav-logout:hover { border-color:rgba(239,68,68,0.4);color:#EF4444; }
+
+        @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.8)} }
+        .stat-pill { display:flex;flex-direction:column;gap:2px;min-width:fit-content; }
+        .stat-label { font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-text-secondary);font-weight:500; }
+        .stat-val { font-size:15px;font-weight:600;color:var(--color-text-primary); }
+        .stat-divider { width:1px;height:32px;background:var(--color-border);flex-shrink:0; }
+
+        .param-group { display:flex;flex-direction:column;gap:6px; }
+        .param-label { font-size:12px;color:var(--color-text-secondary);font-weight:500;text-transform:uppercase;letter-spacing:0.06em; }
+        .param-input-row { display:flex;align-items:center;gap:8px; }
+        .param-prefix { color:var(--color-text-secondary);font-size:14px; }
+
+        #hero { min-height:100vh;display:flex;align-items:center;padding:0 10vw; }
+        .hero-inner { max-width:700px;transform-perspective:400px; }
+        .hero-h1 { font-family:'Cal Sans',sans-serif;font-size:clamp(40px,6vw,72px);line-height:1.1;margin:16px 0 24px;color:var(--color-text-primary); }
+        .hero-em { color:var(--color-emerald);font-style:italic; }
+        .hero-sub { font-size:18px;color:var(--color-text-secondary);max-width:520px;line-height:1.7;margin-bottom:32px; }
+        .hero-hint { margin-top:16px;font-size:13px;color:var(--color-text-secondary);opacity:0.6; }
+
+        .btn-zoom { background:transparent;border:1px solid var(--color-border);color:var(--color-text-secondary);padding:8px 20px;border-radius:20px;cursor:pointer;font-size:13px;transition:all 0.2s; }
+        .btn-zoom.active,.btn-zoom:hover { border-color:var(--color-emerald);color:var(--color-emerald); }
+
+        #timeline-scroll::-webkit-scrollbar { height:4px; }
+        #timeline-scroll::-webkit-scrollbar-track { background:transparent; }
+        #timeline-scroll::-webkit-scrollbar-thumb { background:var(--color-emerald);border-radius:2px; }
+
+        .ctrl-label { font-size:13px;color:var(--color-text-secondary);margin-bottom:8px;display:block;font-weight:500; }
+        input[type=range] { flex:1;accent-color:var(--color-emerald);height:4px; }
+        .toggle-switch { position:relative;display:inline-block;width:44px;height:24px; }
+        .toggle-switch input { opacity:0;width:0;height:0; }
+        .toggle-slider { position:absolute;inset:0;background:rgba(255,255,255,0.1);border-radius:24px;cursor:pointer;transition:0.3s; }
+        .toggle-slider:before { content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:white;border-radius:50%;transition:0.3s; }
+        .toggle-switch input:checked + .toggle-slider { background:var(--color-emerald); }
+        .toggle-switch input:checked + .toggle-slider:before { transform:translateX(20px); }
+
+        .section-label { font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-emerald);font-weight:500; }
+
+        @media (max-width:768px) {
+            #simulate > div { grid-template-columns:1fr !important; }
+            #hero { padding:0 6vw;text-align:center; }
+            .hero-inner { margin:0 auto; }
+            .nav-links { display:none; }
+            .login-card { margin: 20px; padding: 36px 24px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="cursor-dot"></div>
+    <div id="cursor-ring"></div>
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- ══════════════════════════════════════
+         LOGIN PAGE
+    ══════════════════════════════════════ -->
+    <div id="login-page">
+        <div class="login-orb1"></div>
+        <div class="login-orb2"></div>
+
+        <div class="login-card" id="login-card">
+            <div class="login-logo">Horizon</div>
+            <div class="login-tagline">Your wealth. Your timeline. Your terms.</div>
+
+            <div class="login-error" id="login-error">Incorrect email or password. Please try again.</div>
+
+            <label class="login-label">Email address</label>
+            <input type="email" class="login-input" id="login-email" placeholder="you@example.com" autocomplete="email">
+
+            <label class="login-label">Password</label>
+            <input type="password" class="login-input" id="login-password" placeholder="••••••••" autocomplete="current-password">
+
+            <div class="login-row">
+                <label class="login-remember">
+                    <input type="checkbox" id="login-remember"> Remember me
+                </label>
+                <span class="login-forgot">Forgot password?</span>
+            </div>
+
+            <button class="login-btn" id="login-btn" onclick="window.handleLogin()">
+                <span id="login-btn-text">Sign in to Horizon</span>
+                <div class="btn-spinner" id="login-spinner"></div>
+            </button>
+
+            <div class="login-divider"><span>or continue with</span></div>
+
+            <button class="login-social-btn" onclick="window.handleSocialLogin()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                </svg>
+                Sign in with Google
+            </button>
+
+            <div class="login-signup-row">
+                Don't have an account? <a onclick="window.showSignup()">Create one free</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         MAIN APP
+    ══════════════════════════════════════ -->
+    <div id="app-layer">
+        <div id="loader" style="display:none;">
+            <p style="font-family:Cal Sans,sans-serif;font-size:32px;color:#00D37F;letter-spacing:2px;">HORIZON</p>
+            <div id="loader-bar" style="width:200px;height:1px;background:rgba(0,211,127,0.2);margin-top:24px;border-radius:1px;overflow:hidden;">
+                <div id="loader-fill" style="height:100%;width:0%;background:#00D37F;transition:width 0.05s linear;"></div>
+            </div>
+            <p id="loader-text" style="font-size:12px;color:#8899A6;margin-top:16px;letter-spacing:0.15em;">INITIALIZING</p>
+        </div>
+
+        <div id="orb1"></div><div id="orb2"></div><div id="orb3"></div>
+        <div id="scroll-progress"></div>
+
+        <div id="ui-layer">
+            <nav id="navbar">
+                <div class="nav-logo">Horizon</div>
+                <div class="nav-links">
+                    <a href="#timeline">Timeline</a>
+                    <a href="#simulate">Simulate</a>
+                    <a href="#templates">Templates</a>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <div class="nav-user">
+                        <div class="nav-avatar" id="nav-avatar">A</div>
+                        <span class="nav-username" id="nav-username">Aditya</span>
+                    </div>
+                    <button class="nav-logout" onclick="window.handleLogout()">Sign out</button>
+                </div>
+            </nav>
+
+            <div id="stats-bar" style="position:sticky;top:64px;z-index:90;background:rgba(5,10,14,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--color-border);padding:10px 5vw;display:flex;gap:32px;align-items:center;overflow-x:auto;white-space:nowrap;">
+                <div class="stat-pill"><span class="stat-label">Monthly Savings</span><span class="stat-val" id="sb-savings">₹25,000</span></div>
+                <div class="stat-divider"></div>
+                <div class="stat-pill"><span class="stat-label">Annual Return</span><span class="stat-val" id="sb-return">10.0%</span></div>
+                <div class="stat-divider"></div>
+                <div class="stat-pill"><span class="stat-label">Corpus @ 60</span><span class="stat-val" id="sb-corpus" style="color:var(--color-emerald)">—</span></div>
+                <div class="stat-divider"></div>
+                <div class="stat-pill"><span class="stat-label">Milestones</span><span class="stat-val" id="sb-milestones">2 goals</span></div>
+                <div class="stat-divider"></div>
+                <div class="stat-pill"><span class="stat-label">At Risk</span><span class="stat-val" id="sb-atrisk" style="color:#F59E0B">0</span></div>
+                <div class="stat-divider"></div>
+                <div class="stat-pill"><span class="stat-label">Retirement Ready</span><span class="stat-val" id="sb-retire">0%</span></div>
+                <div style="margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-emerald);"><span style="width:6px;height:6px;border-radius:50%;background:var(--color-emerald);display:inline-block;animation:pulse 1.5s ease-in-out infinite;"></span>LIVE</div>
+            </div>
+
+            <main>
+                <section id="hero">
+                    <div class="hero-inner">
+                        <p class="section-label">Your financial future, visualized</p>
+                        <h1 class="hero-h1">Every rupee you save<br>is a milestone<br><em class="hero-em">made possible.</em></h1>
+                        <p class="hero-sub">Drag your life goals onto a 60-year timeline. Watch compound interest build — or break — your plan in real time.</p>
+                        <button class="btn-primary hero-cta" onclick="document.getElementById('timeline').scrollIntoView({behavior:'smooth'})">Build My Timeline →</button>
+                        <p class="hero-hint">↓ Nikshay's plan is pre-loaded — move the sliders to see the math change live</p>
+                    </div>
+                </section>
+
+                <section id="timeline" style="min-height:100vh;padding:80px 5vw;">
+                    <p class="section-label">Your Timeline</p>
+                    <h2 style="font-family:Cal Sans,sans-serif;font-size:clamp(32px,4vw,48px);margin:8px 0 8px;">Drag milestones. Watch the math.</h2>
+                    <p style="color:var(--color-text-secondary);margin-bottom:32px;">Age 20 to 80 — your entire financial life on one axis.</p>
+                    
+                    <div style="display:flex;gap:24px;align-items:center;margin-bottom:16px;padding:12px 16px;background:rgba(255,255,255,0.03);border-radius:10px;border:1px solid var(--color-border);flex-wrap:wrap;">
+                        <div class="stat-pill"><span class="stat-label">Timeline</span><span class="stat-val" style="font-size:13px;">Age 20 → 80</span></div>
+                        <div class="stat-divider"></div>
+                        <div class="stat-pill"><span class="stat-label">Current Age</span><span class="stat-val" id="tl-cage" style="font-size:13px;">28</span></div>
+                        <div class="stat-divider"></div>
+                        <div class="stat-pill"><span class="stat-label">Next Milestone</span><span class="stat-val" id="tl-next" style="font-size:13px;color:var(--color-emerald);">—</span></div>
+                        <div class="stat-divider"></div>
+                        <div class="stat-pill"><span class="stat-label">Years to Plan</span><span class="stat-val" id="tl-years" style="font-size:13px;">52</span></div>
+                        <div style="margin-left:auto;font-size:12px;color:var(--color-text-secondary);">← Drag milestone markers to reposition</div>
+                    </div>
+
+                    <div style="display:flex;gap:12px;margin-bottom:24px;align-items:center;">
+                        <button class="zoom-btn btn-zoom" data-zoom="5">5 Year</button>
+                        <button class="zoom-btn btn-zoom" data-zoom="10">10 Year</button>
+                        <button class="zoom-btn btn-zoom active" data-zoom="full">Full Life</button>
+                        <button id="btn-export" onclick="window.exportSnapshot()" style="margin-left:auto;padding:8px 20px;background:transparent;border:1px solid var(--color-border);color:var(--color-text-secondary);border-radius:20px;cursor:pointer;font-size:13px;transition:all 0.2s;" onmouseover='this.style.borderColor="var(--color-emerald)";this.style.color="var(--color-emerald)"' onmouseout='this.style.borderColor="var(--color-border)";this.style.color="var(--color-text-secondary)"'>↗ Export Summary</button>
+                    </div>
+
+                    <div id="timeline-scroll" style="overflow-x:auto;overflow-y:visible;padding-bottom:16px;position:relative;">
+                        <svg id="timeline-svg" width="3000" height="340" style="display:block;"></svg>
+                        <div id="chart-tooltip" style="position:fixed;display:none;z-index:500;background:rgba(5,10,14,0.95);backdrop-filter:blur(12px);border:1px solid var(--color-border);border-radius:10px;padding:10px 14px;font-size:12px;pointer-events:none;min-width:160px;">
+                            <div id="tt-age" style="font-weight:600;color:var(--color-text-primary);margin-bottom:4px;"></div>
+                            <div id="tt-balance" style="color:var(--color-emerald);font-size:14px;font-weight:600;"></div>
+                            <div id="tt-invested" style="color:var(--color-text-secondary);margin-top:4px;"></div>
+                            <div id="tt-growth" style="color:var(--color-emerald);opacity:0.7;"></div>
+                        </div>
+                    </div>
+                    <div id="milestone-cards" style="display:flex;flex-wrap:wrap;gap:16px;margin-top:32px;align-items:stretch;"></div>
+                    <button onclick="window.openAddMilestone()" style="margin-top:16px;background:transparent;border:1px solid var(--color-border);color:var(--color-emerald);padding:10px 24px;border-radius:8px;cursor:pointer;font-size:14px;">+ Add Milestone</button>
+                </section>
+
+                <div id="milestone-modal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);align-items:center;justify-content:center;"></div>
+
+                <section id="simulate" style="min-height:100vh;padding:80px 5vw;">
+                    <div style="display:grid;grid-template-columns:320px 1fr 300px;grid-template-rows:auto;gap:16px;align-items:start;min-height:80vh;">
+                        <div style="display:flex;flex-direction:column;gap:12px;">
+                            <div class="glass-card" style="padding:16px 20px;">
+                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+                                    <div><p class="section-label" style="margin:0;">Goals</p><h3 style="font-family:Cal Sans,sans-serif;font-size:18px;margin:4px 0 0;">Life Milestones</h3></div>
+                                    <button onclick="window.openAddMilestone()" style="width:32px;height:32px;border-radius:50%;background:var(--color-emerald);color:#000;border:none;cursor:pointer;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">+</button>
+                                </div>
+                                <div id="milestone-drag-list" style="display:flex;flex-direction:column;gap:8px;min-height:200px;"></div>
+                            </div>
+                            <div class="glass-card" style="padding:16px 20px;"><p class="section-label" style="margin:0 0 12px;">Quick Templates</p><div style="display:flex;flex-direction:column;gap:8px;" id="template-btns"></div></div>
+                        </div>
+
+                        <div style="display:flex;flex-direction:column;gap:16px;">
+                            <div class="glass-card" style="padding:20px 24px;">
+                                <p class="section-label" style="margin:0 0 20px;">Parameters</p>
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+                                    <div class="param-group" style="grid-column:1/-1;">
+                                        <label class="param-label">Your Current Age</label>
+                                        <div class="param-input-row"><input type="range" id="ctrl-age" min="18" max="55" step="1" value="28" style="flex:1;accent-color:var(--color-emerald);"></div>
+                                        <div style="display:flex;justify-content:space-between;margin-top:6px;"><span style="font-size:11px;color:var(--color-text-secondary);">18</span><span id="val-age" style="font-size:15px;font-weight:600;color:var(--color-emerald);">Age 28</span><span style="font-size:11px;color:var(--color-text-secondary);">55</span></div>
+                                    </div>
+                                    <div class="param-group">
+                                        <label class="param-label">Monthly Savings</label>
+                                        <div class="param-input-row"><span class="param-prefix">₹</span><input type="range" id="ctrl-savings" min="5000" max="100000" step="1000" value="25000"></div>
+                                        <div style="display:flex;justify-content:space-between;margin-top:6px;"><span style="font-size:11px;color:var(--color-text-secondary);">₹5K</span><span id="val-savings" style="font-size:15px;font-weight:600;color:var(--color-emerald);">₹25,000</span><span style="font-size:11px;color:var(--color-text-secondary);">₹1L</span></div>
+                                    </div>
+                                    <div class="param-group">
+                                        <label class="param-label">Annual Return</label>
+                                        <div class="param-input-row"><input type="range" id="ctrl-return" min="4" max="20" step="0.5" value="10"></div>
+                                        <div style="display:flex;justify-content:space-between;margin-top:6px;"><span style="font-size:11px;color:var(--color-text-secondary);">4%</span><span id="val-return" style="font-size:15px;font-weight:600;color:var(--color-emerald);">10.0%</span><span style="font-size:11px;color:var(--color-text-secondary);">20%</span></div>
+                                    </div>
+                                    <div class="param-group">
+                                        <label class="param-label">Starting Balance</label>
+                                        <div style="display:flex;align-items:center;gap:8px;"><span style="color:var(--color-text-secondary);">₹</span><input type="number" id="ctrl-networth" value="500000" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid var(--color-border);border-radius:8px;color:var(--color-text-primary);padding:8px 12px;font-size:14px;outline:none;"></div>
+                                    </div>
+                                    <div class="param-group">
+                                        <label class="param-label" style="display:flex;align-items:center;justify-content:space-between;">Inflation<label class="toggle-switch"><input type="checkbox" id="ctrl-inflation"><span class="toggle-slider"></span></label></label>
+                                        <div id="inflation-sub" style="display:none;margin-top:8px;"><input type="range" id="ctrl-inflrate" min="3" max="12" step="0.5" value="6" style="width:100%;"><span id="val-inflrate" style="font-size:13px;color:var(--color-emerald);">6.0% p.a.</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                                <div class="glass-card" style="padding:16px;text-align:center;"><p style="font-size:11px;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px;">Total Invested</p><p id="kpi-invested" style="font-size:20px;font-weight:600;font-family:Cal Sans,sans-serif;color:var(--color-text-primary);margin:0;">—</p></div>
+                                <div class="glass-card" style="padding:16px;text-align:center;"><p style="font-size:11px;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px;">Wealth Multiplier</p><p id="kpi-multiplier" style="font-size:20px;font-weight:600;font-family:Cal Sans,sans-serif;color:var(--color-emerald);margin:0;">—</p></div>
+                                <div class="glass-card" style="padding:16px;text-align:center;"><p style="font-size:11px;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px;">Peak Net Worth</p><p id="kpi-peak" style="font-size:20px;font-weight:600;font-family:Cal Sans,sans-serif;color:var(--color-text-primary);margin:0;">—</p></div>
+                            </div>
+                        </div>
+
+                        <div style="display:flex;flex-direction:column;gap:12px;">
+                            <div class="glass-card" style="padding:16px 20px;">
+                                <p style="font-size:11px;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.08em;margin:0 0 4px;">Projected Corpus @ 60</p>
+                                <p id="out-corpus" style="font-family:Cal Sans,sans-serif;font-size:32px;color:var(--color-emerald);margin:0;">₹0</p>
+                                <p style="font-size:12px;color:var(--color-text-secondary);margin:4px 0 0;">at current savings rate</p>
+                                <div style="margin-top:12px;height:1px;background:var(--color-border);"></div>
+                                <div style="margin-top:12px;">
+                                    <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:12px;color:var(--color-text-secondary);">Retirement goal</span><span style="font-size:12px;color:var(--color-text-primary);">₹2 Cr</span></div>
+                                    <div style="background:rgba(255,255,255,0.08);border-radius:4px;height:6px;overflow:hidden;"><div id="out-retire-bar" style="height:100%;background:var(--color-emerald);border-radius:4px;width:0%;transition:width 0.6s ease;"></div></div>
+                                    <p id="out-retire-pct" style="font-size:12px;margin:6px 0 0;color:var(--color-text-secondary);">0% covered</p>
+                                </div>
+                            </div>
+                            <div class="glass-card" style="padding:16px 20px;"><p style="font-size:11px;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.08em;margin:0 0 12px;">Goal Feasibility</p><div id="out-feasibility" style="display:flex;flex-direction:column;gap:8px;"></div></div>
+                            <div class="glass-card" style="padding:16px 20px;"><p style="font-size:11px;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.08em;margin:0 0 12px;">Delta Surface</p><div id="out-delta" style="display:flex;flex-direction:column;gap:6px;"></div></div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+
+            <footer style="padding:48px 5vw;border-top:1px solid var(--color-border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:24px;">
+                <div>
+                    <p style="font-family:Cal Sans,sans-serif;font-size:20px;color:var(--color-emerald);">Horizon</p>
+                    <p style="font-size:13px;color:var(--color-text-secondary);margin-top:4px;">Your wealth. Your timeline. Your terms.</p>
+                </div>
+                <div style="display:flex;gap:24px;flex-wrap:wrap;">
+                    <a href="#timeline" style="color:var(--color-text-secondary);text-decoration:none;font-size:13px;">Timeline</a>
+                    <a href="#simulate" style="color:var(--color-text-secondary);text-decoration:none;font-size:13px;">Simulate</a>
+                    <a href="#templates" style="color:var(--color-text-secondary);text-decoration:none;font-size:13px;">Templates</a>
+                    <a href="#" onclick="localStorage.clear();location.reload();return false;" style="color:var(--color-amber);text-decoration:none;font-size:13px;">Reset Data</a>
+                </div>
+                <p style="font-size:12px;color:var(--color-text-secondary);opacity:0.5;">Built with compound interest and good design.</p>
+            </footer>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         3D ENGINE
+    ══════════════════════════════════════ -->
+    <script>
+    const canvas = document.getElementById('bg-canvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x050A0E, 0.008);
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    camera.position.z = 60;
+    const mouse = { x: 0, y: 0 };
+    const mouseTarget = { x: 0, y: 0 };
+    window.addEventListener('mousemove', (e) => { mouseTarget.x = (e.clientX/window.innerWidth)*2-1; mouseTarget.y = -(e.clientY/window.innerHeight)*2+1; });
+
+    const particleCount = 3500;
+    const particlesGeometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+    const velocities = new Float32Array(particleCount);
+    for (let i = 0; i < particleCount * 3; i += 3) { positions[i]=(Math.random()-0.5)*200; positions[i+1]=(Math.random()-0.5)*200; positions[i+2]=(Math.random()-0.5)*200; velocities[i/3]=0.01+Math.random()*0.02; }
+    particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const particlesMaterial = new THREE.PointsMaterial({ color:0x00D37F, size:0.25, transparent:true, opacity:0.5, sizeAttenuation:true });
+    const particleSystem = new THREE.Points(particlesGeometry, particlesMaterial);
+    scene.add(particleSystem);
+
+    function updateParticles() { const p=particlesGeometry.attributes.position.array; for(let i=0;i<particleCount;i++){const idx=i*3+1;p[idx]+=velocities[i];if(p[idx]>100)p[idx]=-100;} particlesGeometry.attributes.position.needsUpdate=true; }
+
+    const nodeCount=80, nodes=[], nodeGroup=new THREE.Group();
+    const nodeGeo=new THREE.IcosahedronGeometry(0.15,0), nodeMat=new THREE.MeshBasicMaterial({color:0x00D37F,transparent:true,opacity:0.6});
+    for(let i=0;i<nodeCount;i++){const node=new THREE.Mesh(nodeGeo,nodeMat);node.position.set((Math.random()-0.5)*120,(Math.random()-0.5)*120,(Math.random()-0.5)*120);nodes.push(node);nodeGroup.add(node);}
+    scene.add(nodeGroup);
+    const lineMat=new THREE.LineBasicMaterial({color:0x00D37F,transparent:true,opacity:0.08});
+    for(let i=0;i<nodeCount;i++){for(let j=i+1;j<nodeCount;j++){if(nodes[i].position.distanceTo(nodes[j].position)<18){const lg=new THREE.BufferGeometry().setFromPoints([nodes[i].position,nodes[j].position]);nodeGroup.add(new THREE.Line(lg,lineMat));}}}
+
+    const floaters=[];
+    const floaterGeos=[new THREE.TorusGeometry(2,0.4,16,60),new THREE.OctahedronGeometry(1.5),new THREE.TetrahedronGeometry(2),new THREE.IcosahedronGeometry(1.8,0),new THREE.TorusKnotGeometry(1,0.3,100,16)];
+    const floaterMat=new THREE.MeshBasicMaterial({color:0x00D37F,wireframe:true,transparent:true,opacity:0.08});
+    floaterGeos.forEach((geo,i)=>{const f=new THREE.Mesh(geo,floaterMat);f.position.set((Math.random()-0.5)*80,(Math.random()-0.5)*40,(Math.random()-0.5)*40);f.rotationSpeed={x:0.001+Math.random()*0.003,y:0.001+Math.random()*0.003};f.phaseOffset=Math.random()*Math.PI*2;floaters.push(f);scene.add(f);});
+
+    const rings=[], raycaster=new THREE.Raycaster(), planeZ=new THREE.Plane(new THREE.Vector3(0,0,1),0);
+    window.addEventListener('mousedown',(e)=>{
+        const m2=new THREE.Vector2((e.clientX/window.innerWidth)*2-1,-(e.clientY/window.innerHeight)*2+1);
+        raycaster.setFromCamera(m2,camera);const ip=new THREE.Vector3();raycaster.ray.intersectPlane(planeZ,ip);
+        const rg=new THREE.RingGeometry(0.1,0.2,32),rm=new THREE.MeshBasicMaterial({color:0x00D37F,transparent:true,opacity:0.8});
+        const ring=new THREE.Mesh(rg,rm);ring.position.copy(ip);scene.add(ring);rings.push(ring);
+        if(rings.length>6){const old=rings.shift();scene.remove(old);}
+        gsap.to(ring.scale,{x:40,y:40,duration:1.2,ease:"power1.out"});
+        gsap.to(rm,{opacity:0,duration:1.2,ease:"power1.out",onComplete:()=>{scene.remove(ring);const idx=rings.indexOf(ring);if(idx>-1)rings.splice(idx,1);}});
+    });
+
+    const pulseLight=new THREE.PointLight(0x00D37F,0.4);pulseLight.position.set(0,10,20);scene.add(pulseLight);
+    const starCount=1200,starGeo=new THREE.BufferGeometry(),starPos=new Float32Array(starCount*3);
+    for(let i=0;i<starCount*3;i+=3){const r=300,theta=Math.random()*Math.PI*2,phi=Math.acos(2*Math.random()-1);starPos[i]=r*Math.sin(phi)*Math.cos(theta);starPos[i+1]=r*Math.sin(phi)*Math.sin(theta);starPos[i+2]=r*Math.cos(phi);}
+    starGeo.setAttribute('position',new THREE.BufferAttribute(starPos,3));
+    const starMat=new THREE.PointsMaterial({color:0xffffff,size:0.15,transparent:true,opacity:0.3});
+    const starField=new THREE.Points(starGeo,starMat);scene.add(starField);
+
+    window.netWorthAmplitude=1.5;
+    function createWealthRibbon(){const pts=[];for(let i=0;i<=20;i++){const z=50-(i*5),x=Math.sin(i*0.5)*2,y=Math.sin(i/3)*window.netWorthAmplitude;pts.push(new THREE.Vector3(x,y,z));}const curve=new THREE.CatmullRomCurve3(pts);const geo=new THREE.TubeGeometry(curve,100,0.08,8,false);const mat=new THREE.MeshBasicMaterial({color:0x00D37F,transparent:true,opacity:0.12});return new THREE.Mesh(geo,mat);}
+    window.wealthRibbon=createWealthRibbon();scene.add(window.wealthRibbon);
+    window.milestoneSpheres=[];
+    const sphereGeo=new THREE.SphereGeometry(0.35,16,16);
+    window.updateMilestoneSpheres=function(milestoneResults){window.milestoneSpheres.forEach(s=>scene.remove(s));window.milestoneSpheres=[];if(!milestoneResults)return;milestoneResults.slice(0,8).forEach(res=>{const mat=new THREE.MeshBasicMaterial({color:res.ontrack?0x00D37F:0xF59E0B});const sphere=new THREE.Mesh(sphereGeo,mat);const x=((res.age-20)/60)*80-40,y=(res.balanceBefore/10000000)*15-5;sphere.position.set(x,y,0);scene.add(sphere);window.milestoneSpheres.push(sphere);});};
+
+    const clock=new THREE.Clock();
+    window.addEventListener('resize',()=>{camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight);});
+    const emeraldColor=new THREE.Color(0x00D37F),deepEmeraldColor=new THREE.Color(0x00A862);
+
+    function animate(){requestAnimationFrame(animate);const time=clock.getElapsedTime();updateParticles();
+        const scrollPct=window.scrollY/(document.documentElement.scrollHeight-window.innerHeight)||0;
+        if(scrollPct<=0.5)particlesMaterial.color.lerpColors(emeraldColor,deepEmeraldColor,scrollPct*2);
+        else particlesMaterial.color.lerpColors(deepEmeraldColor,emeraldColor,(scrollPct-0.5)*2);
+        nodeGroup.rotation.y+=0.0003;
+        nodes.forEach(node=>{const m3=new THREE.Vector3(mouseTarget.x*50,mouseTarget.y*50,0);const d=node.position.distanceTo(m3);const ts=d<25?1.4:1.0;node.scale.lerp(new THREE.Vector3(ts,ts,ts),0.1);});
+        floaters.forEach(f=>{f.rotation.x+=f.rotationSpeed.x;f.rotation.y+=f.rotationSpeed.y;f.position.y+=Math.sin(time+f.phaseOffset)*0.005;});
+        pulseLight.intensity=0.3+Math.sin(time*0.8)*0.15;starField.rotation.y+=0.00005;
+        mouse.x+=(mouseTarget.x-mouse.x)*0.05;mouse.y+=(mouseTarget.y-mouse.y)*0.05;
+        camera.position.x+=(mouse.x*2-camera.position.x)*0.05;camera.position.y+=(mouse.y*1-camera.position.y)*0.05;
+        camera.lookAt(0,0,0);renderer.render(scene,camera);}
+    animate();
+    </script>
+
+    <!-- ══════════════════════════════════════
+         LOGIN LOGIC
+    ══════════════════════════════════════ -->
+    <script>
+    // Demo credentials — in a real app this would be server-side
+    const DEMO_USERS = [
+        { email: 'nikshay@horizon.app', password: 'nikshay123', name: 'Nikshay' },
+        { email: 'shubham@horizon.app', password: 'shubham123', name: 'Shubham' },
+        { email: 'komal@horizon.app',   password: 'komal123',   name: 'Komal' },
+    ];
+
+    window.handleLogin = function() {
+        const email = document.getElementById('login-email').value.trim();
+        const password = document.getElementById('login-password').value;
+        const errorEl = document.getElementById('login-error');
+        const btnText = document.getElementById('login-btn-text');
+        const spinner = document.getElementById('login-spinner');
+
+        errorEl.style.display = 'none';
+
+        if (!email || !password) {
+            errorEl.textContent = 'Please enter your email and password.';
+            errorEl.style.display = 'block';
+            gsap.from('#login-error', { x: -8, duration: 0.3, ease: 'elastic.out(1,0.5)' });
+            return;
+        }
+
+        // Show loading state
+        btnText.style.display = 'none';
+        spinner.style.display = 'block';
+
+        // Simulate network delay
+        setTimeout(() => {
+            const user = DEMO_USERS.find(u => u.email === email && u.password === password);
+
+            if (user) {
+                // Save session
+                sessionStorage.setItem('horizonUser', JSON.stringify(user));
+                window.currentUser = user;
+                window.launchApp(user);
+            } else {
+                btnText.style.display = 'block';
+                spinner.style.display = 'none';
+                errorEl.textContent = 'Incorrect email or password. Try: nikshay@horizon.app / nikshay123';
+                errorEl.style.display = 'block';
+                gsap.from('#login-error', { x: -8, duration: 0.3, ease: 'elastic.out(1,0.5)' });
+                gsap.to('#login-card', { x: [-6,6,-4,4,-2,2,0], duration: 0.4, ease: 'none' });
+            }
+        }, 900);
+    };
+
+    window.handleSocialLogin = function() {
+        // Simulate Google login
+        const user = { email: 'google@horizon.app', name: 'Google User' };
+        sessionStorage.setItem('horizonUser', JSON.stringify(user));
+        window.currentUser = user;
+        window.launchApp(user);
+    };
+
+    window.showSignup = function() {
+        const card = document.getElementById('login-card');
+        gsap.to(card, { rotateY: 90, duration: 0.25, onComplete: () => {
+            card.innerHTML = `
+                <div class="login-logo">Horizon</div>
+                <div class="login-tagline">Create your free account.</div>
+                <label class="login-label">Full Name</label>
+                <input type="text" class="login-input" id="signup-name" placeholder="Aditya Sharma">
+                <label class="login-label">Email address</label>
+                <input type="email" class="login-input" id="signup-email" placeholder="you@example.com">
+                <label class="login-label">Password</label>
+                <input type="password" class="login-input" id="signup-password" placeholder="Choose a strong password">
+                <button class="login-btn" onclick="window.handleSignup()" style="margin-top:4px;">Create Account</button>
+                <div class="login-signup-row" style="margin-top:20px;">Already have an account? <a onclick="location.reload()">Sign in</a></div>
+            `;
+            gsap.to(card, { rotateY: 0, duration: 0.25 });
+        }});
+    };
+
+    window.handleSignup = function() {
+        const name = document.getElementById('signup-name').value.trim() || 'New User';
+        const email = document.getElementById('signup-email').value.trim() || 'user@horizon.app';
+        const user = { email, name };
+        sessionStorage.setItem('horizonUser', JSON.stringify(user));
+        window.currentUser = user;
+        window.launchApp(user);
+    };
+
+    window.handleLogout = function() {
+        sessionStorage.removeItem('horizonUser');
+        gsap.to('#app-layer', { opacity: 0, duration: 0.5, onComplete: () => {
+            document.getElementById('app-layer').style.display = 'none';
+            document.getElementById('login-page').style.display = 'flex';
+            gsap.fromTo('#login-page', { opacity: 0 }, { opacity: 1, duration: 0.5 });
+            document.getElementById('login-email').value = '';
+            document.getElementById('login-password').value = '';
+        }});
+    };
+
+    window.launchApp = function(user) {
+        // Update nav with user info
+        const initials = user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2);
+        document.getElementById('nav-avatar').textContent = initials;
+        document.getElementById('nav-username').textContent = user.name.split(' ')[0];
+
+        // Transition: fade out login, show loader, then show app
+        gsap.to('#login-page', { opacity: 0, duration: 0.5, onComplete: () => {
+            document.getElementById('login-page').style.display = 'none';
+
+            const appLayer = document.getElementById('app-layer');
+            const loaderEl = document.getElementById('loader');
+            appLayer.style.display = 'block';
+            loaderEl.style.display = 'flex';
+
+            // Run the app loader
+            let progress = 0;
+            const loaderInterval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(loaderInterval);
+                    setTimeout(() => {
+                        gsap.to('#loader', { opacity: 0, duration: 0.6, onComplete: () => {
+                            loaderEl.style.display = 'none';
+                            gsap.to(appLayer, { opacity: 1, duration: 0.6 });
+                            window.initApp();
+                        }});
+                    }, 300);
+                }
+                document.getElementById('loader-fill').style.width = progress + '%';
+                document.getElementById('loader-text').textContent =
+                    progress < 40 ? 'LOADING TIMELINE' :
+                    progress < 70 ? 'RUNNING SIMULATION' :
+                    progress < 90 ? 'BUILDING YOUR FUTURE' : 'READY';
+            }, 80);
+        }});
+    };
+
+    // On page load — check if already logged in
+    window.addEventListener('DOMContentLoaded', () => {
+        const saved = sessionStorage.getItem('horizonUser');
+        if (saved) {
+            window.currentUser = JSON.parse(saved);
+            document.getElementById('login-page').style.display = 'none';
+            window.launchApp(window.currentUser);
+        }
+
+        // Animate login card in
+        gsap.from('#login-card', { y: 40, opacity: 0, duration: 0.8, ease: 'power3.out', delay: 0.2 });
+
+        // Enter key triggers login
+        document.getElementById('login-password').addEventListener('keydown', e => {
+            if (e.key === 'Enter') window.handleLogin();
+        });
+        document.getElementById('login-email').addEventListener('keydown', e => {
+            if (e.key === 'Enter') document.getElementById('login-password').focus();
+        });
+    });
+    </script>
+
+    <!-- ══════════════════════════════════════
+         SIMULATION ENGINE
+    ══════════════════════════════════════ -->
+    <script>
+    window.horizonState = { currentAge:28, monthlySavings:25000, annualReturn:0.10, inflationRate:0.06, inflationEnabled:false, netWorth:500000, milestones:[] };
+
+    window.templates = {
+        nikshay:{ label:'Nikshay — Creative Pro', icon:'🎨', milestones:[{id:1,label:'Buy apartment in Pune',age:32,cost:8000000,category:'home',icon:'🏠'},{id:2,label:'Start my studio',age:35,cost:1500000,category:'business',icon:'🎨'}]},
+        shubham:{ label:'Shubham — Conservative Saver', icon:'🏦', milestones:[{id:1,label:'Emergency Fund',age:30,cost:300000,category:'savings',icon:'🏦'},{id:2,label:'Buy a Car',age:33,cost:800000,category:'vehicle',icon:'🚗'},{id:3,label:'Own Home',age:40,cost:7000000,category:'home',icon:'🏠'},{id:4,label:'Child Education',age:50,cost:3000000,category:'education',icon:'🎓'},{id:5,label:'Retirement Corpus',age:60,cost:20000000,category:'retirement',icon:'🌅'}]},
+        komal:{ label:'Komal — Aggressive Entrepreneur', icon:'🚀', milestones:[{id:1,label:'Seed Fund Startup',age:30,cost:2000000,category:'business',icon:'🚀'},{id:2,label:'Buy Office Space',age:35,cost:10000000,category:'property',icon:'🏢'},{id:3,label:'Series A Investment',age:38,cost:5000000,category:'business',icon:'📈'},{id:4,label:'Retirement Corpus',age:55,cost:50000000,category:'retirement',icon:'🌅'}]}
+    };
+
+    window.saveState = () => localStorage.setItem('horizonState', JSON.stringify(window.horizonState));
+    window.loadState = () => { const s=localStorage.getItem('horizonState'); if(s){window.horizonState=JSON.parse(s);return true;} return false; };
+
+    window.runSimulation = function() {
+        const s=window.horizonState;
+        const milestones=[...s.milestones].sort((a,b)=>a.age-b.age);
+        const monthlyRate=s.annualReturn/12;
+        let balance=s.netWorth;
+        const trajectory=[], milestoneResults=[], processedIds=new Set();
+        for(let age=s.currentAge;age<=80;age+=1/12){
+            const roundedAge=Math.round(age*12)/12;
+            balance+=s.monthlySavings; balance*=(1+monthlyRate);
+            milestones.forEach(m=>{
+                if(!processedIds.has(m.id)&&Math.abs(roundedAge-m.age)<1/24){
+                    let cost=m.cost;
+                    if(s.inflationEnabled)cost*=Math.pow(1+s.inflationRate,m.age-s.currentAge);
+                    const shortfall=balance<cost;
+                    milestoneResults.push({...m,cost,shortfall,gap:shortfall?cost-balance:0,balanceBefore:balance,monthlySavingsNeeded:shortfall?computeSavingsNeeded(s.netWorth,cost,m.age-s.currentAge,s.annualReturn):0});
+                    balance=Math.max(0,balance-cost); processedIds.add(m.id);
+                }
+            });
+            if(Math.round(age*12)%12===0)trajectory.push({age:Math.round(age),balance});
+        }
+        return {trajectory,milestoneResults};
+    };
+
+    function computeSavingsNeeded(netWorth,targetCost,years,annualReturn){
+        if(years<=0)return targetCost;
+        const months=years*12,r=annualReturn/12;
+        const fv=netWorth*Math.pow(1+r,months);
+        const rem=Math.max(0,targetCost-fv);
+        return r===0?rem/months:rem*r/(Math.pow(1+r,months)-1);
+    }
+    </script>
+
+    <!-- ══════════════════════════════════════
+         WIRING & UI LOGIC
+    ══════════════════════════════════════ -->
+    <script>
+    function formatINR(amount){if(amount>=10000000)return'₹'+(amount/10000000).toFixed(2)+' Cr';if(amount>=100000)return'₹'+(amount/100000).toFixed(1)+' L';return'₹'+amount.toLocaleString('en-IN');}
+
+    window.renderTimelineChart = function(results) {
+        const svg=document.getElementById('timeline-svg');if(!svg)return;svg.innerHTML='';
+        const container=document.getElementById('timeline-scroll');
+        const containerWidth=container?container.offsetWidth:1200;
+        const SVG_W=Math.max(containerWidth*2.2,2400),SVG_H=340;
+        svg.setAttribute('width',SVG_W);svg.setAttribute('viewBox','0 0 '+SVG_W+' '+SVG_H);
+        const maxBal=Math.max(...results.trajectory.map(t=>t.balance),1);
+        const AX_START=60,AX_END=SVG_W-60,AX_BASE=260,AX_TOP=50;
+        const ageToX=age=>AX_START+((age-20)/60)*(AX_END-AX_START);
+        const balToY=bal=>AX_BASE-Math.min(bal/maxBal,1)*(AX_BASE-AX_TOP);
+
+        const axisLine=document.createElementNS('http://www.w3.org/2000/svg','line');
+        axisLine.setAttribute('x1',AX_START);axisLine.setAttribute('y1',AX_BASE);axisLine.setAttribute('x2',AX_END);axisLine.setAttribute('y2',AX_BASE);axisLine.setAttribute('stroke','#8899A6');axisLine.setAttribute('stroke-width','1');svg.appendChild(axisLine);
+
+        [20,25,30,35,40,45,50,55,60,65,70,75,80].forEach(age=>{
+            const x=ageToX(age);
+            const tick=document.createElementNS('http://www.w3.org/2000/svg','line');tick.setAttribute('x1',x);tick.setAttribute('y1',AX_BASE);tick.setAttribute('x2',x);tick.setAttribute('y2',AX_BASE+10);tick.setAttribute('stroke','#8899A6');tick.setAttribute('stroke-width','1');svg.appendChild(tick);
+            const lbl=document.createElementNS('http://www.w3.org/2000/svg','text');lbl.setAttribute('x',x);lbl.setAttribute('y',AX_BASE+26);lbl.setAttribute('text-anchor','middle');lbl.setAttribute('font-size','12');lbl.setAttribute('fill','#8899A6');lbl.textContent=age;svg.appendChild(lbl);
+        });
+
+        const pts=results.trajectory.map(t=>ageToX(t.age)+','+balToY(t.balance)).join(' ');
+        const firstX=ageToX(results.trajectory[0].age),lastX=ageToX(results.trajectory[results.trajectory.length-1].age);
+        const fill=document.createElementNS('http://www.w3.org/2000/svg','polygon');fill.setAttribute('points',firstX+','+AX_BASE+' '+pts+' '+lastX+','+AX_BASE);fill.setAttribute('fill','rgba(0,211,127,0.07)');svg.appendChild(fill);
+
+        const line=document.createElementNS('http://www.w3.org/2000/svg','polyline');line.setAttribute('points',pts);line.setAttribute('fill','none');line.setAttribute('stroke','#00D37F');line.setAttribute('stroke-width','2');line.setAttribute('stroke-linejoin','round');svg.appendChild(line);
+
+        const maxMilestoneCost=Math.max(...window.horizonState.milestones.map(m=>m.cost),0);
+        if(maxMilestoneCost>0){
+            const targetY=balToY(maxMilestoneCost);
+            const tl=document.createElementNS('http://www.w3.org/2000/svg','line');tl.setAttribute('x1',AX_START);tl.setAttribute('y1',targetY);tl.setAttribute('x2',AX_END);tl.setAttribute('y2',targetY);tl.setAttribute('stroke','#F59E0B');tl.setAttribute('stroke-width','1');tl.setAttribute('stroke-dasharray','6,4');tl.setAttribute('opacity','0.4');svg.appendChild(tl);
+            const tlb=document.createElementNS('http://www.w3.org/2000/svg','text');tlb.setAttribute('x',AX_START+8);tlb.setAttribute('y',targetY-6);tlb.setAttribute('font-size','11');tlb.setAttribute('fill','#F59E0B');tlb.setAttribute('opacity','0.7');tlb.textContent='Largest goal: '+formatINR(maxMilestoneCost);svg.appendChild(tlb);
+        }
+
+        svg.addEventListener('mousemove',function(e){
+            const rect=svg.getBoundingClientRect();const scaleX=SVG_W/rect.width;const rawX=(e.clientX-rect.left)*scaleX;
+            const hoverAge=Math.round(20+((rawX-AX_START)/(AX_END-AX_START))*60);
+            if(hoverAge<20||hoverAge>80){document.getElementById('chart-tooltip').style.display='none';return;}
+            const point=results.trajectory.find(t=>t.age===hoverAge);if(!point)return;
+            const months=(hoverAge-window.horizonState.currentAge)*12;
+            const totalInv=window.horizonState.monthlySavings*Math.max(months,0)+window.horizonState.netWorth;
+            const growth=point.balance-totalInv;const tt=document.getElementById('chart-tooltip');
+            tt.style.display='block';tt.style.left=(e.clientX+16)+'px';tt.style.top=(e.clientY-20)+'px';
+            document.getElementById('tt-age').textContent='Age '+hoverAge;
+            document.getElementById('tt-balance').textContent='Balance: '+formatINR(Math.max(0,point.balance));
+            document.getElementById('tt-invested').textContent='Invested: '+formatINR(Math.max(0,totalInv));
+            document.getElementById('tt-growth').textContent='Growth: +'+formatINR(Math.max(0,growth));
+        });
+        svg.addEventListener('mouseleave',function(){document.getElementById('chart-tooltip').style.display='none';});
+
+        results.milestoneResults.forEach((m,i)=>{
+            const cx=ageToX(m.age),color=m.shortfall?'#F59E0B':'#00D37F';
+            const vline=document.createElementNS('http://www.w3.org/2000/svg','line');vline.setAttribute('x1',cx);vline.setAttribute('y1',AX_TOP);vline.setAttribute('x2',cx);vline.setAttribute('y2',AX_BASE);vline.setAttribute('stroke',color);vline.setAttribute('stroke-width','1');vline.setAttribute('stroke-dasharray','4,4');vline.setAttribute('opacity','0.4');svg.appendChild(vline);
+            const circle=document.createElementNS('http://www.w3.org/2000/svg','circle');circle.setAttribute('cx',cx);circle.setAttribute('cy',AX_BASE);circle.setAttribute('r','14');circle.setAttribute('fill','#050A0E');circle.setAttribute('stroke',color);circle.setAttribute('stroke-width','2');circle.style.cursor='grab';svg.appendChild(circle);
+            const icon=document.createElementNS('http://www.w3.org/2000/svg','text');icon.setAttribute('x',cx);icon.setAttribute('y',AX_BASE+5);icon.setAttribute('text-anchor','middle');icon.setAttribute('font-size','13');icon.textContent=m.icon||'📍';svg.appendChild(icon);
+            const label=document.createElementNS('http://www.w3.org/2000/svg','text');label.setAttribute('x',cx);label.setAttribute('y',AX_BASE-24);label.setAttribute('text-anchor','middle');label.setAttribute('font-size','11');label.setAttribute('fill',color);label.textContent=m.label.length>16?m.label.slice(0,14)+'…':m.label;svg.appendChild(label);
+
+            let dragging=false;
+            circle.addEventListener('mousedown',e=>{dragging=true;circle.style.cursor='grabbing';e.preventDefault();});
+            const handleMove=e=>{if(!dragging)return;const svgRect=svg.getBoundingClientRect();const scaleX=SVG_W/svgRect.width;const rawX=((e.clientX||(e.touches&&e.touches[0].clientX))-svgRect.left)*scaleX;const clampedX=Math.max(AX_START,Math.min(AX_END,rawX));const newAge=Math.round(20+((clampedX-AX_START)/(AX_END-AX_START))*60);const ms=window.horizonState.milestones.find(x=>x.id===m.id);if(ms&&ms.age!==newAge){ms.age=Math.max(window.horizonState.currentAge,newAge);window.runAndRender();}if(e.touches)e.preventDefault();};
+            const handleUp=()=>{if(dragging){dragging=false;circle.style.cursor='grab';}};
+            document.addEventListener('mousemove',handleMove);document.addEventListener('mouseup',handleUp);
+            circle.addEventListener('touchstart',e=>{dragging=true;e.preventDefault();},{passive:false});circle.addEventListener('touchmove',handleMove,{passive:false});circle.addEventListener('touchend',handleUp);
+        });
+    };
+
+    if(window.horizonResizeObserver)window.horizonResizeObserver.disconnect();
+    window.horizonResizeObserver=new ResizeObserver(()=>{if(window.lastResults)window.renderTimelineChart(window.lastResults);});
+    const timelineScrollNode=document.getElementById('timeline-scroll');
+    if(timelineScrollNode)window.horizonResizeObserver.observe(timelineScrollNode);
+
+    window.renderMilestoneCards = function(results) {
+        const container=document.getElementById('milestone-cards');container.innerHTML='';
+        results.milestoneResults.forEach(r=>{
+            const card=document.createElement('div');card.className='glass-card';
+            card.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:24px;">${r.icon}</span><span class="badge-ontrack" style="font-size:10px;text-transform:uppercase;">${r.category||'Goal'}</span></div><h3 style="font-family:Cal Sans;font-weight:600;font-size:16px;margin:10px 0 4px;">${r.label}</h3><p style="color:var(--color-text-secondary);font-size:13px;margin:0 0 12px;">Age ${r.age} · ${formatINR(r.cost)}</p><div style="margin-bottom:8px;"><span class="${r.shortfall?'badge-atrisk':'badge-ontrack'}">${r.shortfall?'AT RISK':'ON TRACK'}</span></div>${r.shortfall?`<p style="color:var(--color-amber);font-size:12px;line-height:1.5;margin:4px 0 0;">Short by ${formatINR(r.gap)}. Save ₹${Math.round(r.monthlySavingsNeeded).toLocaleString('en-IN')}/mo more.</p>`:''}<div style="flex:1;"></div><div style="display:flex;flex-direction:row;gap:12px;margin-top:16px;width:100%;box-sizing:border-box;"><button onclick="window.editMilestone(${r.id})" style="flex:1;padding:9px 0;background:var(--color-emerald);color:#000;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;">Edit</button><button onclick="window.deleteMilestone(${r.id})" style="flex:1;padding:9px 0;background:transparent;color:#F59E0B;border:1.5px solid rgba(245,158,11,0.4);border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;">Delete</button></div>`;
+            container.appendChild(card);
+        });
+    };
+
+    window.renderMilestoneDragList = function(results) {
+        const container=document.getElementById('milestone-drag-list');if(!container)return;container.innerHTML='';
+        const milestones=[...window.horizonState.milestones].sort((a,b)=>a.age-b.age);let dragSrcId=null;
+        milestones.forEach(m=>{
+            const mr=results.milestoneResults.find(x=>x.id===m.id)||{};const shortfall=mr.shortfall;
+            const color=shortfall?'#F59E0B':'var(--color-emerald)';const bgOpacity=shortfall?'rgba(245,158,11,0.12)':'rgba(0,211,127,0.12)';
+            const row=document.createElement('div');row.className='ms-row';row.draggable=true;row.dataset.id=m.id;
+            row.style.cssText=`display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);cursor:grab;transition:all 0.2s;position:relative;`;
+            row.innerHTML=`<div style='color:var(--color-text-secondary);font-size:16px;cursor:grab;user-select:none;'>⠿</div><span style='font-size:20px;'>${m.icon}</span><div style='flex:1;min-width:0;'><div style='font-size:13px;font-weight:600;color:var(--color-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>${m.label}</div><div style='font-size:11px;color:var(--color-text-secondary);margin-top:2px;'>Age ${m.age} · <span style='color:var(--color-emerald);'>${formatINR(m.cost)}</span></div></div><div style='width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;'></div><div style='display:flex;flex-direction:column;align-items:flex-end;gap:4px;'><span style='font-size:11px;font-weight:600;color:${color};background:${bgOpacity};padding:2px 8px;border-radius:4px;'>${shortfall?'AT RISK':'ON TRACK'}</span><div style='display:flex;gap:6px;'><button onclick='window.editMilestone(${m.id})' style='font-size:11px;padding:3px 10px;background:var(--color-emerald);color:#000;border:none;border-radius:6px;cursor:pointer;font-weight:600;'>Edit</button><button onclick='window.deleteMilestone(${m.id})' style='font-size:11px;padding:3px 10px;background:transparent;color:#F59E0B;border:1px solid rgba(245,158,11,0.35);border-radius:6px;cursor:pointer;font-weight:600;'>Del</button></div></div>`;
+            row.addEventListener('dragstart',e=>{dragSrcId=+row.dataset.id;row.style.opacity='0.4';e.dataTransfer.effectAllowed='move';});
+            row.addEventListener('dragend',()=>{row.style.opacity='1';});
+            row.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='move';row.style.background='rgba(0,211,127,0.08)';row.style.borderColor='rgba(0,211,127,0.3)';});
+            row.addEventListener('dragleave',()=>{row.style.background='rgba(255,255,255,0.03)';row.style.borderColor='rgba(255,255,255,0.06)';});
+            row.addEventListener('drop',e=>{e.preventDefault();row.style.background='rgba(255,255,255,0.03)';row.style.borderColor='rgba(255,255,255,0.06)';if(dragSrcId===+row.dataset.id)return;const msList=window.horizonState.milestones;const srcIdx=msList.findIndex(x=>x.id===dragSrcId);const tgtIdx=msList.findIndex(x=>x.id===+row.dataset.id);const[removed]=msList.splice(srcIdx,1);msList.splice(tgtIdx,0,removed);window.runAndRender();});
+            container.appendChild(row);
+        });
+    };
+
+    window.renderScenarioPanel = function(results) {
+        const s=window.horizonState;
+        const totalMonths=(60-s.currentAge)*12,totalInvested=s.monthlySavings*totalMonths+s.netWorth;
+        const age60Point=results.trajectory.find(t=>t.age===60)||results.trajectory[results.trajectory.length-1];
+        const corpusAt60=age60Point.balance,multiplier=corpusAt60/Math.max(totalInvested,1);
+        const peakBalance=Math.max(...results.trajectory.map(t=>t.balance));
+        document.getElementById('kpi-invested').textContent=formatINR(totalInvested);
+        document.getElementById('kpi-multiplier').textContent=multiplier.toFixed(1)+'x';
+        document.getElementById('kpi-peak').textContent=formatINR(peakBalance);
+        document.getElementById('sb-savings').textContent='₹'+s.monthlySavings.toLocaleString('en-IN');
+        document.getElementById('sb-return').textContent=(s.annualReturn*100).toFixed(1)+'%';
+        document.getElementById('sb-corpus').textContent=formatINR(corpusAt60);
+        document.getElementById('sb-milestones').textContent=s.milestones.length+' goals';
+        const atRisk=results.milestoneResults.filter(m=>m.shortfall).length;
+        document.getElementById('sb-atrisk').textContent=atRisk;document.getElementById('sb-atrisk').style.color=atRisk>0?'#F59E0B':'var(--color-emerald)';
+        const retirePct=Math.min(100,Math.round(corpusAt60/20000000*100));
+        document.getElementById('sb-retire').textContent=retirePct+'%';document.getElementById('sb-retire').style.color=retirePct>=80?'var(--color-emerald)':retirePct>=50?'#F59E0B':'#EF4444';
+        const nextMs=s.milestones.filter(m=>m.age>s.currentAge).sort((a,b)=>a.age-b.age)[0];
+        if(document.getElementById('tl-next'))document.getElementById('tl-next').textContent=nextMs?nextMs.icon+' '+nextMs.label+' @ '+nextMs.age:'None set';
+        if(document.getElementById('tl-cage'))document.getElementById('tl-cage').textContent=s.currentAge;
+        if(document.getElementById('tl-years'))document.getElementById('tl-years').textContent=80-s.currentAge;
+        const feas=document.getElementById('out-feasibility');feas.innerHTML='';
+        results.milestoneResults.slice(0,4).forEach(m=>{const row=document.createElement('div');row.style.display='flex';row.style.flexDirection='column';row.style.gap='4px';row.innerHTML=`<div style='display:flex;justify-content:space-between;align-items:center;'><span style='font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>${m.icon} ${m.label}</span><span class="${m.shortfall?'badge-atrisk':'badge-ontrack'}" style='font-size:10px;'>${m.shortfall?'AT RISK':'ON TRACK'}</span></div>${m.shortfall?`<p style='margin:0;font-size:11px;color:#F59E0B;'>Short ${formatINR(m.gap)} · Need ₹${Math.round(m.monthlySavingsNeeded).toLocaleString()}/mo more</p>`:''}`;feas.appendChild(row);});
+        document.getElementById('out-delta').innerHTML=`<table style='width:100%;border-collapse:collapse;font-size:12px;'><thead><tr style='color:var(--color-text-secondary);'><th style='text-align:left;padding:4px 0;font-weight:500;'>Goal</th><th style='text-align:right;padding:4px 0;font-weight:500;'>Gap</th><th style='text-align:right;padding:4px 0;font-weight:500;'>+₹/mo</th></tr></thead><tbody>${results.milestoneResults.filter(m=>m.shortfall).map(m=>`<tr><td style='padding:4px 0;'>${m.label}</td><td style='text-align:right;padding:4px 0;'>${formatINR(m.gap)}</td><td style='text-align:right;padding:4px 0;color:var(--color-emerald)'>₹${Math.round(m.monthlySavingsNeeded).toLocaleString()}</td></tr>`).join('')||'<tr><td colspan="3" style="text-align:center;padding:12px 0;color:var(--color-text-secondary);">All goals on track</td></tr>'}</tbody></table>`;
+        const pctFull=Math.min(100,(corpusAt60/20000000)*100);document.getElementById('out-retire-bar').style.width=pctFull+'%';document.getElementById('out-retire-pct').textContent=`${Math.round(pctFull)}% covered`;document.getElementById('out-corpus').textContent=formatINR(corpusAt60);
+        const tplDiv=document.getElementById('template-btns');
+        if(tplDiv){tplDiv.innerHTML='';Object.keys(window.templates).forEach(key=>{const t=window.templates[key];const active=window.activeTemplate===key;const btn=document.createElement('button');btn.className='btn-zoom';btn.style.cssText=`width:100%;display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:8px;margin-bottom:4px;text-align:left;justify-content:flex-start;${active?'border:1px solid var(--color-emerald);background:rgba(0,211,127,0.08);color:var(--color-emerald);':'border:1px solid var(--color-border);background:transparent;'}`;btn.innerHTML=`<span>${t.icon}</span><span>${t.label}</span>`;btn.onclick=()=>window.loadTemplate(key);tplDiv.appendChild(btn);});}
+        document.getElementById('val-savings').textContent='₹'+s.monthlySavings.toLocaleString('en-IN');document.getElementById('val-return').textContent=(s.annualReturn*100).toFixed(1)+'%';document.getElementById('val-inflrate').textContent=(s.inflationRate*100).toFixed(1)+'% p.a.';
+    };
+
+    window.runAndRender = function() {
+        const results=window.runSimulation();window.lastResults=results;
+        window.renderTimelineChart(results);window.renderMilestoneCards(results);window.renderMilestoneDragList(results);window.renderScenarioPanel(results);
+        if(window.updateMilestoneSpheres)window.updateMilestoneSpheres(results.milestoneResults);
+        window.saveState();
+    };
+
+    window.loadTemplate=function(k){window.horizonState.milestones=JSON.parse(JSON.stringify(window.templates[k].milestones));window.activeTemplate=k;window.runAndRender();window.saveState();};
+
+    window.editMilestone=function(id){const m=window.horizonState.milestones.find(x=>x.id===id);if(!m)return;const modal=document.getElementById('milestone-modal');modal.style.display='flex';modal.innerHTML=`<div class="glass-card" style="min-width:320px;display:flex;flex-direction:column;gap:16px;"><h3 style="font-family:Cal Sans;">Edit Milestone</h3><label class="ctrl-label">Label<input type="text" id="edit-label" value="${m.label}" style="width:100%;background:transparent;border:1px solid var(--color-border);border-radius:8px;color:white;padding:8px;"></label><label class="ctrl-label">Age<input type="number" id="edit-age" value="${m.age}" style="width:100%;background:transparent;border:1px solid var(--color-border);border-radius:8px;color:white;padding:8px;"></label><label class="ctrl-label">Cost (₹)<input type="number" id="edit-cost" value="${m.cost}" style="width:100%;background:transparent;border:1px solid var(--color-border);border-radius:8px;color:white;padding:8px;"></label><div style="display:flex;gap:10px;"><button class="btn-primary" onclick="window.saveMilestoneEdit(${id})">Save</button><button onclick="document.getElementById('milestone-modal').style.display='none'" class="btn-zoom">Cancel</button></div></div>`;};
+    window.saveMilestoneEdit=function(id){const m=window.horizonState.milestones.find(x=>x.id===id);if(!m)return;m.label=document.getElementById('edit-label').value;m.age=+document.getElementById('edit-age').value;m.cost=+document.getElementById('edit-cost').value;document.getElementById('milestone-modal').style.display='none';window.runAndRender();};
+    window.deleteMilestone=function(id){window.horizonState.milestones=window.horizonState.milestones.filter(x=>x.id!==id);window.runAndRender();};
+    window.openAddMilestone=function(){const modal=document.getElementById('milestone-modal');modal.style.display='flex';modal.innerHTML=`<div class="glass-card" style="min-width:320px;display:flex;flex-direction:column;gap:16px;"><h3 style="font-family:Cal Sans;">Add Goal</h3><input type="text" id="add-label" placeholder="Label" style="width:100%;background:transparent;border:1px solid var(--color-border);border-radius:8px;color:white;padding:8px;"><input type="number" id="add-age" placeholder="Age" style="width:100%;background:transparent;border:1px solid var(--color-border);border-radius:8px;color:white;padding:8px;"><input type="number" id="add-cost" placeholder="Cost" style="width:100%;background:transparent;border:1px solid var(--color-border);border-radius:8px;color:white;padding:8px;"><button class="btn-primary" onclick="window.submitAddMilestone()">Add</button><button onclick="document.getElementById('milestone-modal').style.display='none'" class="btn-zoom">Cancel</button></div>`;};
+    window.submitAddMilestone=function(){window.horizonState.milestones.push({id:Date.now(),label:document.getElementById('add-label').value,age:+document.getElementById('add-age').value,cost:+document.getElementById('add-cost').value,category:'other',icon:'🎯'});document.getElementById('milestone-modal').style.display='none';window.runAndRender();};
+
+    window.initApp = function() {
+        if(!window.loadState()) window.loadTemplate('nikshay');
+        const s=window.horizonState;
+        document.getElementById('ctrl-savings').value=s.monthlySavings;
+        document.getElementById('ctrl-return').value=s.annualReturn*100;
+        document.getElementById('ctrl-networth').value=s.netWorth;
+        document.getElementById('ctrl-inflation').checked=s.inflationEnabled;
+        document.getElementById('ctrl-inflrate').value=s.inflationRate*100;
+        document.getElementById('inflation-sub').style.display=s.inflationEnabled?'block':'none';
+        window.runAndRender();
+
+        const heroH1=document.querySelector('.hero-h1');
+        const text=heroH1.innerText;heroH1.innerHTML='';
+        text.split('').forEach(char=>{const span=document.createElement('span');span.innerText=char==='\n'?'\n':char;span.style.display='inline-block';span.style.opacity='0';heroH1.appendChild(span);});
+        gsap.to('.hero-h1 span',{opacity:1,y:0,rotateX:0,duration:0.4,stagger:0.03,startAt:{y:20,rotateX:90},ease:'power2.out'});
+        gsap.from('.hero-inner > *:not(.hero-h1)',{opacity:0,y:40,stagger:0.15,duration:0.8,ease:'power2.out',delay:1});
+
+        gsap.registerPlugin(ScrollTrigger);
+        ['#timeline','#simulate'].forEach(sel=>{gsap.from(sel+' h2',{opacity:0,y:30,duration:0.6,scrollTrigger:{trigger:sel,start:'top 80%'}});});
+    };
+
+    document.getElementById('ctrl-age').oninput=function(){window.horizonState.currentAge=+this.value;document.getElementById('val-age').textContent='Age '+this.value;window.runAndRender();};
+    document.getElementById('ctrl-savings').oninput=function(){window.horizonState.monthlySavings=+this.value;window.runAndRender();};
+    document.getElementById('ctrl-return').oninput=function(){window.horizonState.annualReturn=+this.value/100;window.runAndRender();};
+    document.getElementById('ctrl-networth').onchange=function(){window.horizonState.netWorth=+this.value;window.runAndRender();};
+    document.getElementById('ctrl-inflation').onchange=function(){window.horizonState.inflationEnabled=this.checked;document.getElementById('inflation-sub').style.display=this.checked?'block':'none';window.runAndRender();};
+    document.getElementById('ctrl-inflrate').oninput=function(){window.horizonState.inflationRate=+this.value/100;window.runAndRender();};
+
+    window.exportSnapshot=function(){const s=window.horizonState;const results=window.lastResults;if(!results)return;const age60Point=results.trajectory.find(t=>t.age===60)||results.trajectory[results.trajectory.length-1];const corpusAt60=age60Point.balance;const atRisk=results.milestoneResults.filter(m=>m.shortfall);let html='<html><head><meta charset="UTF-8"><style>body{font-family:system-ui;background:#050A0E;color:#F0F4F8;padding:40px;max-width:700px;margin:auto;}h1{color:#00D37F;font-size:28px;margin-bottom:4px;}.card{background:#0A1628;border:1px solid rgba(0,211,127,0.15);border-radius:12px;padding:20px;margin:16px 0;}.em{color:#00D37F;font-weight:600;}.amber{color:#F59E0B;font-weight:600;}table{width:100%;border-collapse:collapse;}td,th{padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);}th{color:#8899A6;font-size:12px;text-transform:uppercase;text-align:left;}</style></head><body>';html+='<h1>Horizon — My Financial Plan</h1><p style="color:#8899A6;">Generated on '+new Date().toLocaleDateString('en-IN')+'</p>';html+='<div class="card"><h3 style="margin:0 0 12px;">Parameters</h3><table><tr><td>Current Age</td><td class="em">'+s.currentAge+'</td></tr><tr><td>Monthly Savings</td><td class="em">₹'+s.monthlySavings.toLocaleString('en-IN')+'</td></tr><tr><td>Annual Return</td><td class="em">'+(s.annualReturn*100).toFixed(1)+'%</td></tr><tr><td>Starting Balance</td><td class="em">'+formatINR(s.netWorth)+'</td></tr><tr><td>Projected Corpus @ 60</td><td class="em">'+formatINR(corpusAt60)+'</td></tr></table></div>';html+='<div class="card"><h3 style="margin:0 0 12px;">Milestones</h3><table><tr><th>Goal</th><th>Age</th><th>Cost</th><th>Status</th></tr>';results.milestoneResults.forEach(m=>{html+='<tr><td>'+m.icon+' '+m.label+'</td><td>'+m.age+'</td><td>'+formatINR(m.cost)+'</td><td class="'+(m.shortfall?'amber':'em')+'">'+(m.shortfall?'AT RISK':'ON TRACK')+'</td></tr>';});html+='</table></div>';if(atRisk.length>0){html+='<div class="card"><h3 style="margin:0 0 12px;color:#F59E0B;">Action Required</h3>';atRisk.forEach(m=>{html+='<p>To achieve <strong>'+m.label+'</strong>, save ₹'+Math.round(m.monthlySavingsNeeded).toLocaleString('en-IN')+'/month more.</p>';});html+='</div>';}html+='</body></html>';const blob=new Blob([html],{type:'text/html'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='horizon-plan-'+Date.now()+'.html';a.click();URL.revokeObjectURL(a.href);};
+
+    document.querySelectorAll('.btn-zoom').forEach(btn=>btn.onclick=function(){
+        document.querySelectorAll('.btn-zoom').forEach(b=>b.classList.remove('active'));this.classList.add('active');
+        const zoom=this.dataset.zoom,svg=document.getElementById('timeline-svg');
+        const SVG_W=svg.getAttribute('width'),AX_START=60,AX_END=SVG_W-60;
+        const ageToX=age=>AX_START+((age-20)/60)*(AX_END-AX_START);
+        let x1=0,w=SVG_W;
+        if(zoom==='5'){x1=Math.max(0,ageToX(window.horizonState.currentAge)-100);w=600;}
+        else if(zoom==='10'){x1=Math.max(0,ageToX(window.horizonState.currentAge)-100);w=1200;}
+        gsap.to(svg,{attr:{viewBox:`${x1} 0 ${w} 340`},duration:0.5});
+    });
+    </script>
+
+    <!-- ══════════════════════════════════════
+         INTERACTION LOGIC
+    ══════════════════════════════════════ -->
+    <script>
+    (function(){
+        const dot=document.getElementById('cursor-dot'),ring=document.getElementById('cursor-ring');
+        window.addEventListener('mousemove',(e)=>{
+            dot.style.left=e.clientX+'px';dot.style.top=e.clientY+'px';
+            gsap.to(ring,{left:e.clientX,top:e.clientY,duration:0.12,ease:'power2.out'});
+        });
+
+        document.addEventListener('mousemove',(e)=>{
+            const btns=document.querySelectorAll('.btn-primary,.btn-zoom,#btn-export,.login-btn,.login-social-btn');
+            btns.forEach(btn=>{
+                const rect=btn.getBoundingClientRect(),btnX=rect.left+rect.width/2,btnY=rect.top+rect.height/2;
+                const dist=Math.hypot(e.clientX-btnX,e.clientY-btnY);
+                if(dist<80){gsap.to(btn,{x:(e.clientX-btnX)*0.35,y:(e.clientY-btnY)*0.35,duration:0.3,ease:'power2.out'});}
+                else{gsap.to(btn,{x:0,y:0,duration:0.5,ease:'elastic.out(1,0.3)'});}
+            });
+        });
+
+        const hoverables='button,a,.glass-card,.login-card,g,circle,input,select,[contenteditable]';
+        document.addEventListener('mouseover',(e)=>{const target=e.target.closest(hoverables);if(target){if(target.closest('#template-btns,#milestone-drag-list')){gsap.to(ring,{scale:1,borderColor:'#00D37F',duration:0.15});}else{gsap.to(ring,{scale:2.2,borderColor:'#F59E0B',duration:0.15});}}});
+        document.addEventListener('mouseout',(e)=>{if(e.target.closest(hoverables)){gsap.to(ring,{scale:1,borderColor:'#00D37F',duration:0.15});}});
+        window.addEventListener('mousedown',()=>{gsap.to(dot,{scale:0.4,duration:0.1});gsap.to(ring,{scale:0.8,duration:0.1});});
+        window.addEventListener('mouseup',()=>{gsap.to(dot,{scale:1,duration:0.1});gsap.to(ring,{scale:1,duration:0.1});});
+
+        window.addEventListener('scroll',()=>{
+            const winScroll=document.body.scrollTop||document.documentElement.scrollTop;
+            const height=document.documentElement.scrollHeight-document.documentElement.clientHeight;
+            gsap.to('#scroll-progress',{width:(winScroll/height)*100+'%',duration:0.1});
+        });
+
+        document.addEventListener('mousemove',(e)=>{
+            const card=e.target.closest('.glass-card,.login-card');
+            if(card){const rect=card.getBoundingClientRect();const relX=e.clientX-rect.left,relY=e.clientY-rect.top;gsap.to(card,{rotateX:((relY/rect.height)-0.5)*8,rotateY:((relX/rect.width)-0.5)*-8,transformPerspective:800,duration:0.3,ease:'power2.out'});}
+        });
+        document.addEventListener('mouseout',(e)=>{const card=e.target.closest('.glass-card,.login-card');if(card){gsap.to(card,{rotateX:0,rotateY:0,duration:0.5,ease:'elastic.out(1,0.5)'});}});
+
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.from('#timeline-svg',{x:-60,opacity:0,duration:1,ease:'power2.out',scrollTrigger:{trigger:'#timeline',start:'top 70%'}});
+        gsap.from('#milestone-cards .glass-card',{y:40,opacity:0,stagger:0.1,duration:0.8,ease:'power2.out',scrollTrigger:{trigger:'#milestone-cards',start:'top 85%'}});
+        gsap.from('#simulate > div > div',{opacity:0,y:20,stagger:0.1,duration:0.7,ease:'power2.out',scrollTrigger:{trigger:'#simulate',start:'top 70%'}});
+
+        document.addEventListener('click',(e)=>{const btn=e.target.closest('button,.btn-zoom');if(btn){const rect=btn.getBoundingClientRect();const x=e.clientX-rect.left,y=e.clientY-rect.top;const ripple=document.createElement('span');ripple.className='ripple';ripple.style.left=x+'px';ripple.style.top=y+'px';btn.appendChild(ripple);setTimeout(()=>ripple.remove(),500);}});
+
+        const oldRenderScenario=window.renderScenarioPanel;let lastCorpus=0,lastPct=0;
+        window.renderScenarioPanel=function(results){
+            oldRenderScenario(results);
+            const age60Point=results.trajectory.find(t=>t.age===60)||results.trajectory[results.trajectory.length-1];
+            const newCorpus=age60Point.balance;const counter={val:lastCorpus};
+            gsap.to(counter,{val:newCorpus,duration:0.8,onUpdate:()=>{const v=counter.val;const el=document.getElementById('out-corpus');if(el)el.textContent=formatINR(v);const el2=document.getElementById('sb-corpus');if(el2)el2.textContent=formatINR(v);}});lastCorpus=newCorpus;
+            const newPct=Math.min(100,(newCorpus/20000000)*100);const pctCounter={val:lastPct};
+            gsap.to(pctCounter,{val:newPct,duration:0.8,onUpdate:()=>{const el=document.getElementById('out-retire-pct');if(el)el.textContent=`${Math.round(pctCounter.val)}% covered`;}});lastPct=newPct;
+        };
+
+        window.prevStatus={};const oldRenderCards=window.renderMilestoneCards;
+        window.renderMilestoneCards=function(results){
+            results.milestoneResults.forEach(m=>{const status=m.shortfall?'AT RISK':'ON TRACK';if(window.prevStatus[m.id]&&window.prevStatus[m.id]!==status){const card=[...document.querySelectorAll('#milestone-cards .glass-card')].find(c=>c.innerHTML.includes(m.label));if(card){gsap.to(card,{rotateY:90,duration:0.2,onComplete:()=>{window.prevStatus[m.id]=status;oldRenderCards(results);gsap.to(card,{rotateY:0,duration:0.2});}}); return;} }window.prevStatus[m.id]=status;});
+            oldRenderCards(results);
+        };
+    })();
+    </script>
+</body>
+</html>
